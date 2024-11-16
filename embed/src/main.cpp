@@ -16,9 +16,6 @@ const char* password = "boom1514";
 #define DHTTYPE DHT22
 BH1750 lightMeter;
 const char* scriptUrl = "https://script.google.com/macros/s/AKfycbw0PQADYWhKyAFcIkJuvkAL3zlN9H-MUoEt95Vph4nV0ZFt3qcREqAo4tkqt-y9AV9d/exec";
-float brightness = 150;
-float temperature = 24.5;
-float humidity = 60.0;
 
 AsyncWebServer server(80);
 
@@ -82,7 +79,7 @@ void setup() {
     dht.begin();
 }
 
-void sendDataToGoogleSheets() {
+void sendDataToGoogleSheets(float humidity,float temperature,float brightness) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
     String url = String(scriptUrl) + "?brightness=" + brightness + "&temperature=" + temperature + "&humidity=" + humidity;
@@ -99,9 +96,8 @@ void sendDataToGoogleSheets() {
 }
 
 void loop() {
-  sendDataToGoogleSheets();
 
-    delay(2000);
+    delay(20000);
     float lux = lightMeter.readLightLevel();
     Serial.print("Light Intensity: ");
     Serial.print(lux);
@@ -123,4 +119,6 @@ void loop() {
     Serial.print("%  Temperature: ");
     Serial.print(temperature);
     Serial.println("°C");
+    sendDataToGoogleSheets(humidity, temperature, 150);
+
 }
