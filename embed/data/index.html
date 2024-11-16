@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embedproject</title>
+    <!-- ----style.css---- -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <table>
+        <tr>
+            <td>humidity</td>
+            <td id="humidityValue">10-90 %RH</td>
+        </tr>
+        <tr>
+            <td>temperature</td>
+            <td id="temperatureValue">˚C</td>
+        </tr>
+        <tr>
+            <td>dust</td>
+            <td id="dustValue">0-0.5 mg/m3</td>
+        </tr>
+        <tr>
+            <td>brightness</td>
+            <td id="brightnessValue">300-1000 nm</td>
+        </tr>
+        <tr>
+            <td>result</td>
+            <td id="resultValue">60% Good</td>
+        </tr>
+    </table>
+    <button id="button" onclick="fetchData()">Refresh</button>
+    <button id="startButton">Click to Start Talking</button>
+
+    <p class="output">Say "humidity," "temperature," "dust," or "brightness" after clicking the button.</p>
+
+    <!-- ----script.js------ -->
+    <!-- <script src="script.js"> -->
+    <script>
+        //recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        // Define the grammar to recognize specific words
+    const grammar =
+    "#JSGF V1.0; grammar conditions; public <condition> = humidity | temperature | dust | brightness;";
+
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    const speechRecognitionList = new (window.SpeechGrammarList || window.webkitSpeechGrammarList)();
+    speechRecognitionList.addFromString(grammar, 1);
+    recognition.grammars = speechRecognitionList;
+
+    recognition.continuous = false;
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    // Link table cells
+    const humidityValue = document.getElementById("humidityValue");
+    const temperatureValue = document.getElementById("temperatureValue");
+    const dustValue = document.getElementById("dustValue");
+    const brightnessValue = document.getElementById("brightnessValue");
+    const diagnostic = document.querySelector(".output");
+    const startButton = document.getElementById("startButton");
+
+    // Click the button to start listening
+    startButton.addEventListener("click", () => {
+    recognition.start();
+    diagnostic.textContent = "Listening... Please say a word.";
+    console.log("Listening for specific words: humidity, temperature, dust, brightness.");
+    });
+
+    // Handle results
+    recognition.onresult = (event) => {
+    const word = event.results[0][0].transcript.toLowerCase().trim(); // Normalize input
+    console.log(`Word recognized: ${word}`);
+
+    // Update the appropriate table cell
+    switch (word) {
+        case "humidity":
+        humidityValue.textContent = "Updated Humidity Value: 50%RH";
+        diagnostic.textContent = "Detected and updated: Humidity";
+        break;
+        case "temperature":
+        temperatureValue.textContent = "Updated Temperature Value: 25°C";
+        diagnostic.textContent = "Detected and updated: Temperature";
+        break;
+        case "dust":
+        dustValue.textContent = "Updated Dust Value: 0.2 mg/m³";
+        diagnostic.textContent = "Detected and updated: Dust";
+        break;
+        case "brightness":
+        brightnessValue.textContent = "Updated Brightness Value: 700 nm";
+        diagnostic.textContent = "Detected and updated: Brightness";
+        break;
+        default:
+        diagnostic.textContent = `Unrecognized word: ${word}`;
+        console.log(`Unrecognized word: ${word}`);
+    }
+    };
+
+    // Handle errors
+    recognition.onerror = (event) => {
+    diagnostic.textContent = `Error occurred: ${event.error}`;
+    console.error(`Error: ${event.error}`);
+    };
+
+    recognition.onnomatch = () => {
+    diagnostic.textContent = "No matching word detected.";
+    console.log("No match.");
+    };
+
+    function fetchData() {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/getBrightness', true);
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState == 4 && xhr.status == 200) {
+            document.getElementById('ledBrightness').textContent = xhr.responseText;
+          }
+        };
+        xhr.send();
+      }
+    </script>
+</body>
+</html>
