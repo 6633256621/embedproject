@@ -3,9 +3,14 @@
 #include <ESPAsyncWebServer.h>
 #include <FS.h>
 #include <SPIFFS.h>
+#include <HTTPClient.h>
 
 const char* ssid = "Vivo 11 pro max";
 const char* password = "boom1514";
+const char* scriptUrl = "https://script.google.com/macros/s/AKfycbw0PQADYWhKyAFcIkJuvkAL3zlN9H-MUoEt95Vph4nV0ZFt3qcREqAo4tkqt-y9AV9d/exec";
+float brightness = 150;
+float temperature = 24.5;
+float humidity = 60.0;
 
 AsyncWebServer server(80);
 
@@ -56,5 +61,23 @@ void setup() {
     server.begin();
 }
 
+void sendDataToGoogleSheets() {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    String url = String(scriptUrl) + "?brightness=" + brightness + "&temperature=" + temperature + "&humidity=" + humidity;
+    http.begin(url);
+    int httpResponseCode = http.GET();
+    if (httpResponseCode > 0) {
+      String response = http.getString();
+      Serial.println("Success");
+    } else {
+      Serial.println("Error on sending request");
+    }
+    http.end();
+  }
+}
+
 void loop() {
+  sendDataToGoogleSheets();
+  delay(60000);
 }
