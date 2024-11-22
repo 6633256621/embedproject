@@ -345,5 +345,12 @@ void loop() {
       Serial.println("FAILED");
       Serial.println(fbdo.errorReason());
     }
+    if (Firebase.RTDB.getString(&fbdo, "/sensors/AI")) {
+        String intValue = fbdo.stringData();
+        Serial.println(intValue);
+    }
+    else {
+      Serial.println(fbdo.errorReason());
+    }
   }
 }
