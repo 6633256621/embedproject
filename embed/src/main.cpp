@@ -197,74 +197,74 @@ void setup() {
     file.close(); // Make sure to close the file handle
     }
     // Configure web server endpoints
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
-        request->send(SPIFFS, "/index.html", "text/html");
-    });
-    server.on("/scan", HTTP_GET, [](AsyncWebServerRequest* request) {
-        StaticJsonDocument<200> sensornode = sendRequestToSensorNode();
-        lux = sensornode["brightness"];
-        humidity = dht.readHumidity();
-        temperature = dht.readTemperature();
-        dustDensity = sensornode["dustDensity"];
-        Serial.printf("Humidity: %.2f%%  Temperature: %.2f°C\n lux: %.2flux\n dustDensity: %.2fu\n", humidity, temperature,lux,dustDensity);
+    // server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
+    //     request->send(SPIFFS, "/index.html", "text/html");
+    // });
+    // server.on("/scan", HTTP_GET, [](AsyncWebServerRequest* request) {
+    //     StaticJsonDocument<200> sensornode = sendRequestToSensorNode();
+    //     lux = sensornode["brightness"];
+    //     humidity = dht.readHumidity();
+    //     temperature = dht.readTemperature();
+    //     dustDensity = sensornode["dustDensity"];
+    //     Serial.printf("Humidity: %.2f%%  Temperature: %.2f°C\n lux: %.2flux\n dustDensity: %.2fu\n", humidity, temperature,lux,dustDensity);
 
-        // Create JSON response
-        String jsonResponse = "{";
-        jsonResponse += "\"humidity\":";
-        jsonResponse += String(humidity);
-        jsonResponse += ",";
-        jsonResponse += "\"temperature\":" ;
-        jsonResponse += String(temperature);
-        jsonResponse += ",";
-        jsonResponse += "\"dust\":"; 
-        jsonResponse += String(dustDensity);
-        jsonResponse += ",";
-        jsonResponse += "\"brightness\":" ;
-        jsonResponse += String(lux);
-        jsonResponse += "}";
-        request->send(200, "application/json", jsonResponse); // Respond with JSON
-    });
-    server.on("/script.js", HTTP_GET, [](AsyncWebServerRequest* request) {
-        request->send(SPIFFS, "/script.js", "application/javascript");
-    });
+    //     // Create JSON response
+    //     String jsonResponse = "{";
+    //     jsonResponse += "\"humidity\":";
+    //     jsonResponse += String(humidity);
+    //     jsonResponse += ",";
+    //     jsonResponse += "\"temperature\":" ;
+    //     jsonResponse += String(temperature);
+    //     jsonResponse += ",";
+    //     jsonResponse += "\"dust\":"; 
+    //     jsonResponse += String(dustDensity);
+    //     jsonResponse += ",";
+    //     jsonResponse += "\"brightness\":" ;
+    //     jsonResponse += String(lux);
+    //     jsonResponse += "}";
+    //     request->send(200, "application/json", jsonResponse); // Respond with JSON
+    // });
+    // server.on("/script.js", HTTP_GET, [](AsyncWebServerRequest* request) {
+    //     request->send(SPIFFS, "/script.js", "application/javascript");
+    // });
 
-    server.on("/styles.css", HTTP_GET, [](AsyncWebServerRequest* request) {
-        request->send(SPIFFS, "/styles.css", "text/css");
-    });
-    server.on("/process-voice", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-    StaticJsonDocument<200> jsonDoc;
-    DeserializationError error = deserializeJson(jsonDoc, data);
+    // server.on("/styles.css", HTTP_GET, [](AsyncWebServerRequest* request) {
+    //     request->send(SPIFFS, "/styles.css", "text/css");
+    // });
+//     server.on("/process-voice", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+//     StaticJsonDocument<200> jsonDoc;
+//     DeserializationError error = deserializeJson(jsonDoc, data);
 
-    if (error) {
-      Serial.println("Failed to parse JSON");
-      request->send(400, "application/json", "{\"message\":\"Invalid JSON\"}");
-      return;
-    }
+//     if (error) {
+//       Serial.println("Failed to parse JSON");
+//       request->send(400, "application/json", "{\"message\":\"Invalid JSON\"}");
+//       return;
+//     }
 
-    const char* word = jsonDoc["word"];
-    String key = String(word);
-    if (key == "humidity") {
-        key+=" : " ;
-        key  += String(humidity);
-        key +="% RH";
-    }
-    else if(key == "dust") {
-        key+=" : " ;
-        key  += String(dustDensity);
-        key+="µg/m³";
-    }
-    else if(key == "temperature") {
-        key+=" : " ;
-        key  += String(temperature);
-        key +="°C";
-    }
-    else if(key == "brightness") {
-        key+=" : " ;
-        key  += String(lux);
-        key+="lx";
-    }
-    lcd.print(key);
-  });
+//     const char* word = jsonDoc["word"];
+//     String key = String(word);
+//     if (key == "humidity") {
+//         key+=" : " ;
+//         key  += String(humidity);
+//         key +="% RH";
+//     }
+//     else if(key == "dust") {
+//         key+=" : " ;
+//         key  += String(dustDensity);
+//         key+="µg/m³";
+//     }
+//     else if(key == "temperature") {
+//         key+=" : " ;
+//         key  += String(temperature);
+//         key +="°C";
+//     }
+//     else if(key == "brightness") {
+//         key+=" : " ;
+//         key  += String(lux);
+//         key+="lx";
+//     }
+//     lcd.print(key);
+//   });
 
     // Start the server
     server.begin();
@@ -301,7 +301,7 @@ void loop() {
         reconnectWiFi();     // Reconnect Wi-Fi if disconnected
     }
 
-    if (Firebase.ready() && signupOK && (millis() - sendDataPrevMillis > 500 || sendDataPrevMillis == 0)){
+    if (Firebase.ready() && signupOK && (millis() - sendDataPrevMillis > 1000 || sendDataPrevMillis == 0)){
     sendDataPrevMillis = millis();
     StaticJsonDocument<200> sensornode = sendRequestToSensorNode();
     lux = sensornode["brightness"];
@@ -346,9 +346,53 @@ void loop() {
       Serial.println(fbdo.errorReason());
     }
     if (Firebase.RTDB.getString(&fbdo, "/sensors/AI")) {
-        String intValue = fbdo.stringData();
-        Serial.println(intValue);
-    }
+        String stringValue = fbdo.stringData();
+        String key = String(stringValue);
+        if (key == "humidity") {
+            key+=" : " ;
+            String keys  = String(humidity);
+            keys +=" RH";
+            lcd.clear();
+            lcd.setCursor(0,0);
+            lcd.print(key);
+            lcd.setCursor(0,1);
+            lcd.print(keys);
+        }
+        else if(key == "dust") {
+            key+=" : " ;
+            String keys  = String(dustDensity);
+            keys+=" ug/m^3";
+            lcd.clear();
+            lcd.setCursor(0,0);
+            lcd.print(key);
+            lcd.setCursor(0,1);
+            lcd.print(keys);
+        }
+        else if(key == "temperature") {
+            key+=" : " ;
+            String keys  = String(temperature);
+            keys +=" C";
+            lcd.clear();
+            lcd.setCursor(0,0);
+            lcd.print(key);
+            lcd.setCursor(0,1);
+            lcd.print(keys);
+        }
+        else if(key == "brightness") {
+            key+=" : " ;
+            String keys  = String(lux);
+            keys+=" lx";
+            lcd.clear();
+            lcd.setCursor(0,0);
+            lcd.print(key);
+            lcd.setCursor(0,1);
+            lcd.print(keys);
+        }
+        else if(key == "reset") {
+            lcd.clear();
+        }
+            Serial.println(stringValue);
+        }
     else {
       Serial.println(fbdo.errorReason());
     }
