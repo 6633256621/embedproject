@@ -12,14 +12,23 @@
 #include <HTTPClient.h>
 #include <GP2YDustSensor.h>
 #include <LiquidCrystal_I2C.h>
+#include <ArduinoJson.h>
 
 LiquidCrystal_I2C lcd(0x27, 16, 2); // 16x2 LCD
+
+float lux = 0;
+float humidity = 0;
+float temperature = 0;
+float dustDensity = 0;
 
 const char* scriptUrl = "https://script.google.com/macros/s/AKfycbw0PQADYWhKyAFcIkJuvkAL3zlN9H-MUoEt95Vph4nV0ZFt3qcREqAo4tkqt-y9AV9d/exec";
 
 // Wi-Fi credentials
 const char* ssid = "Vivo 11 pro max";
 const char* password = "boom1514";
+
+const char* sensorNodeIP = "172.20.10.6";
+const char* sensorNodeEndpoint = "/get-data";
 
 // Pin Definitions
 #define DHTPIN 4
@@ -39,6 +48,40 @@ AsyncWebServer server(80);
 TaskHandle_t loopTask = NULL;
 
 // Function Prototypes
+
+StaticJsonDocument<200> sendRequestToSensorNode() {
+    if (WiFi.status() == WL_CONNECTED) {
+        HTTPClient http;
+
+        // Construct the full URL
+        String url = String("http://") + sensorNodeIP + sensorNodeEndpoint;
+
+        Serial.println("Sending request to: " + url);
+
+        http.begin(url); // Start the HTTP request
+        int httpResponseCode = http.GET(); // Perform GET request
+
+        // Check response
+        if (httpResponseCode > 0) {
+            Serial.printf("HTTP Response code: %d\n", httpResponseCode);
+            String responseBody = http.getString();
+            Serial.println("Response from sensor node:");
+            Serial.println(responseBody);
+            StaticJsonDocument<200> doc;
+            deserializeJson(doc, responseBody);
+            return doc;
+            // Parse or process the JSON response here if needed
+            // Example: Extract sensor values from JSON
+        } else {
+            Serial.printf("Error on HTTP request: %s\n", http.errorToString(httpResponseCode).c_str());
+        }
+
+        http.end(); // End the HTTP connection
+    } else {
+        Serial.println("WiFi is not connected. Cannot send request.");
+    }
+}
+
 void reconnectWiFi() {
     if (WiFi.status() != WL_CONNECTED) {
         Serial.println("Reconnecting to Wi-Fi...");
@@ -134,11 +177,12 @@ void setup() {
         request->send(SPIFFS, "/index.html", "text/html");
     });
     server.on("/scan", HTTP_GET, [](AsyncWebServerRequest* request) {
-        float lux = 0;
-        float humidity = dht.readHumidity();
-        float temperature = dht.readTemperature();
-        float dustDensity = 0;
-        Serial.printf("Humidity: %.2f%%  Temperature: %.2f°C\n", humidity, temperature);
+        StaticJsonDocument<200> sensornode = sendRequestToSensorNode();
+        lux = sensornode["brightness"];
+        humidity = dht.readHumidity();
+        temperature = dht.readTemperature();
+        dustDensity = sensornode["dustDensity"];
+        Serial.printf("Humidity: %.2f%%  Temperature: %.2f°C\n lux: %.2flux\n dustDensity: %.2fu\n", humidity, temperature,lux,dustDensity);
 
         // Create JSON response
         String jsonResponse = "{";
@@ -163,6 +207,32 @@ void setup() {
     server.on("/styles.css", HTTP_GET, [](AsyncWebServerRequest* request) {
         request->send(SPIFFS, "/styles.css", "text/css");
     });
+//     server.on("/process-voice", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+//     StaticJsonDocument<200> jsonDoc;
+//     DeserializationError error = deserializeJson(jsonDoc, data);
+
+//     if (error) {
+//       Serial.println("Failed to parse JSON");
+//       request->send(400, "application/json", "{\"message\":\"Invalid JSON\"}");
+//       return;
+//     }
+
+//     const char* word = jsonDoc["word"];
+//     String key = String(word);
+//     if (key == "humidity") {
+//         key+=(" : "+String(humidity)+"% RH");
+//     }
+//     else if(key == "dust") {
+//         key+=(" : "+String(dustDensity)+"µg/m³");
+//     }
+//     else if(key == "temperature") {
+//         key+=(" : "+String(temperature)+"°C");
+//     }
+//     else if(key == "brightness") {
+//         key+=(" : "+String(lux)+"lx");
+//     }
+//     lcd.print(key);
+//   });
 
     // Start the server
     server.begin();

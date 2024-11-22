@@ -53,6 +53,69 @@ scanButton.addEventListener("click", () => {
             scanButton.disabled = false;  // Re-enable the button
         });
   });
+const talkingButton = document.getElementById('talkingbutton');
+let recognition;
+
+if ('webkitSpeechRecognition' in window) {
+  recognition = new webkitSpeechRecognition(); // Use webkitSpeechRecognition for Chrome and other modern browsers
+  recognition.continuous = true;  // Keep listening until manually stopped
+  recognition.interimResults = false; // We only want final results
+
+  recognition.onstart = () => {
+    talkingButton.innerHTML = "Listening..."; // Change button text when listening
+    talkingButton.disabled = true;
+  };
+
+  recognition.onerror = (event) => {
+    talkingButton.innerHTML = "Error occurred, click to retry"; // Error handling
+    talkingButton.disabled = false;
+    console.error("Speech recognition error:", event.error);
+  };
+
+  recognition.onend = () => {
+    talkingButton.innerHTML = "Click here<br>and Start Talking"; // Reset the button when recognition ends
+    talkingButton.disabled = false;
+  };
+
+  //-----------------------------
+
+  recognition.onresult = (event) => {
+    // Get the transcript of what was said
+    const spokenWord = event.results[event.resultIndex][0].transcript.toLowerCase();
+
+    // Check if the spoken word matches any of the sensor names
+    if (spokenWord.includes("humidity")) {
+      const humidity = document.getElementById("humidityValue").textContent;
+      displayDetectedWord("Humidity", humidity);
+      recognition.stop(); // Stop recognition after detecting a word
+    } else if (spokenWord.includes("dust")) {
+      const dust = document.getElementById("dustValue").textContent;
+      displayDetectedWord("Dust", dust);
+      recognition.stop();
+    } else if (spokenWord.includes("temperature")) {
+      const temperature = document.getElementById("temperatureValue").textContent;
+      displayDetectedWord("Temperature", temperature);
+      recognition.stop();
+    } else if (spokenWord.includes("brightness")) {
+      const brightness = document.getElementById("brightnessValue").textContent;
+      displayDetectedWord("Brightness", brightness);
+      recognition.stop();
+    }
+  };
+
+  // Function to display the detected word and its corresponding value
+  function displayDetectedWord(word, value) {
+    alert(`Detected word: ${word}\nValue: ${value}`);
+  }
+
+  // Start listening when the button is clicked
+  talkingButton.addEventListener('click', () => {
+    recognition.start();
+  });
+} else {
+  alert("Speech recognition is not supported in this browser."); 
+}
+
   
   // Function to generate random sensor data
   function generateRandomData() {
