@@ -1,3 +1,27 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-analytics.js";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCvi4o1NE3QGjF-OdLKfCpYiOs7hKksoNY",
+  authDomain: "embeded-953a1.firebaseapp.com",
+  databaseURL: "https://embeded-953a1-default-rtdb.firebaseio.com/",
+  projectId: "embeded-953a1",
+  storageBucket: "embeded-953a1.firebasestorage.app",
+  messagingSenderId: "1068125102342",
+  appId: "1:1068125102342:web:c006a8d15414f452b43e87",
+  measurementId: "G-3BLFRY5R6R"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+//--------------------
+
 // Scanning simulation
 scanButton.addEventListener("click", () => {
     // Disable button and change text to "Scanning..."
