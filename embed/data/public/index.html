@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sensor Monitor</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <!-- Buttons Section -->
+    <div class="buttons">
+      <button id="scanButton" class="button" >Start Scan</button>
+      <button id="talkingbutton" class="button">Click here<br>and Start Talking</button>
+    </div>
+
+    <!-- Result Section -->
+    <div id="resultSection" class="result-section">
+      <div id="resultContent" class="result">
+        <h2>RESULT</h2>
+        <div id="resultStatus">
+          <p class="percentage"></p>
+          <p class="status">...</p>
+        </div>
+        <p id="resultMessage" class="message"></p>
+      </div>
+    </div>
+
+    <!-- Sensor Cards -->
+    <!-- <div class="sensor-cards">
+      <div class="card" style="background-color: #d3d3d3;">
+        <h3>Humidity</h3>
+        <p><span id="humidityValue">0</span>% RH</p>
+      </div>
+      <div class="card" style="background-color: #d3d3d3;">
+        <h3>Temperature</h3>
+        <p><span id="temperatureValue">0</span> °C</p>
+      </div>
+      <div class="card" style="background-color: #d3d3d3;">
+        <h3>Dust</h3>
+        <p><span id="dustValue">0</span> mg/m³</p>
+      </div>
+      <div class="card" style="background-color: #d3d3d3;">
+        <h3>Brightness</h3>
+        <p><span id="brightnessValue">0</span> lx</p>
+      </div>
+    </div> -->
+    <div class="gradient-bar">
+        <div class="text-left">Bad</div>
+        <div class="text-right">Good</div>
+    </div>
+    <div class="sensor-cards">
+        <div class="card" style="background-color: #d3d3d3;">
+          <h3>Humidity</h3>
+          <div class="valuecontainer">
+              <p id="humidityValue" class="value">0</p>
+              <p class="factor">% RH</p>
+          </div>
+        </div>
+        <div class="card" style="background-color: #d3d3d3;">
+          <h3>Temperature</h3>
+          <div class="valuecontainer">
+              <p id="temperatureValue" class="value">0</p>
+              <p class="factor">°C</p>
+          </div>
+        </div>
+        <div class="card" style="background-color: #d3d3d3;">
+          <h3>Dust</h3>
+          <div class="valuecontainer">
+              <p id="dustValue" class="value">0</p>
+              <p class="factor">µg/m³</p>
+          </div>
+        </div>
+        <div class="card" style="background-color: #d3d3d3;">
+          <h3>Brightness</h3>
+          <div class="valuecontainer">
+              <p id="brightnessValue" class="value">0</p>
+              <p class="factor">lx</p>
+          </div>
+        </div>
+      </div>
+  </div>  
+  <script src="script.js"></script>
+</body>
+</html>
