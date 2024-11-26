@@ -69,6 +69,8 @@ AsyncWebServer server(80);
 
 TaskHandle_t loopTask = NULL;
 
+unsigned long startTime;
+
 // Function Prototypes
 
 StaticJsonDocument<200> sendRequestToSensorNode() {
@@ -128,16 +130,18 @@ void reconnectWiFi() {
 
 TaskHandle_t emailTaskHandle = NULL;
 
-void sendDataToGoogleSheets(float humidity,float temperature,float brightness) {
+void sendDataToGoogleSheets(float brightness, float dust, float humidity, float temperature) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
     String url = String(scriptUrl);
         url += "?brightness=";
         url += brightness;
-        url += "&temperature=";
-        url += temperature;
+        url += "?dust=";
+        url += dust;
         url += "&humidity=";
         url += humidity;
+        url += "&temperature=";
+        url += temperature;
     http.begin(url);
     int httpResponseCode = http.GET();
     if (httpResponseCode > 0) {
@@ -288,6 +292,8 @@ void setup() {
 
     Firebase.begin(&config, &auth);
     Firebase.reconnectWiFi(true);
+
+    startTime=millis();
 }
 
 // Main Loop
@@ -396,5 +402,9 @@ void loop() {
     else {
       Serial.println(fbdo.errorReason());
     }
+    if (millis()>startTime+10000){
+    sendDataToGoogleSheets(lux, dustDensity, humidity, temperature);
+    startTime=millis(); // Reset timer
+  }
   }
 }
