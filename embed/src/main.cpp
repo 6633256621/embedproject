@@ -63,6 +63,8 @@ DHT dht(DHTPIN, DHTTYPE);
 
 TaskHandle_t loopTask = NULL;
 
+unsigned long startTime;
+
 // Function Prototypes
 
 
