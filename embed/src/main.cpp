@@ -1,16 +1,11 @@
 #include <Arduino.h>
 #include <WiFi.h>
-#include <ESPAsyncWebServer.h>
-#include <FS.h>
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
 #include <DHT_U.h>
-#include <SPIFFS.h>
 #include <Wire.h>
-#include <BH1750.h>
 #include <esp_task_wdt.h>
 #include <HTTPClient.h>
-#include <GP2YDustSensor.h>
 #include <LiquidCrystal_I2C.h>
 #include <ArduinoJson.h>
 #include <Firebase_ESP_Client.h>
@@ -36,35 +31,34 @@ bool signupOK = false;
 
 LiquidCrystal_I2C lcd(0x27, 16, 2); // 16x2 LCD
 
+StaticJsonDocument<200> sensornode;
+
 float lux = 0;
 float humidity = 0;
 float temperature = 0;
 float dustDensity = 0;
 
-const char* scriptUrl = "https://script.google.com/macros/s/AKfycbw0PQADYWhKyAFcIkJuvkAL3zlN9H-MUoEt95Vph4nV0ZFt3qcREqAo4tkqt-y9AV9d/exec";
+
+static unsigned long lastReadTime;
+
+unsigned long startTime;
+
+const char* scriptUrl = "https://script.google.com/macros/s/AKfycbyJjGmHs3FkzUM2DNj37QLqiZgetZMX-Gt6bURzYZ5v-9f2mmkk9cVZobij08M7X8DX/exec";
 
 // Wi-Fi credentials
 const char* ssid = "Vivo 11 pro max";
 const char* password = "boom1514";
 
-const char* sensorNodeIP = "172.20.10.6";
-const char* sensorNodeEndpoint = "/get-data";
 
 // Pin Definitions
 #define DHTPIN 4
+#define FAN_PIN 5
 #define DHTTYPE DHT22
 #define I2C_SDA 33
 #define I2C_SCL 32
 
-
-
-
 // Sensor Initialization
 DHT dht(DHTPIN, DHTTYPE);
-BH1750 lightMeter;
-
-// Web Server Initialization
-AsyncWebServer server(80);
 
 
 TaskHandle_t loopTask = NULL;
@@ -73,14 +67,74 @@ unsigned long startTime;
 
 // Function Prototypes
 
+
+// Setup Function
+void setup() {
+    Serial.begin(115200);
+
+    // Initialize I2C
+    pinMode(FAN_PIN, OUTPUT);
+    digitalWrite(FAN_PIN, LOW);
+    Wire.begin(I2C_SDA, I2C_SCL);
+    lcd.init();
+    lcd.backlight();
+    lcd.setCursor(0, 0);
+    lcd.print("LCD Initialized");
+
+    loopTask = xTaskGetHandle("loopTask");
+    if (loopTask != NULL) {
+        esp_task_wdt_delete(loopTask);
+    }
+
+    // Connect to Wi-Fi
+    Serial.println("Connecting to WiFi...");
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(1000);
+        Serial.print(".");
+    }
+    Serial.println("\nWiFi connected!");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+
+    dht.begin();
+
+    /* Assign the api key (required) */
+    config.api_key = API_KEY;
+
+    /* Assign the RTDB URL (required) */
+    config.database_url = DATABASE_URL;
+
+      /* Sign up */
+    if (Firebase.signUp(&config, &auth, "", "")){
+        Serial.println("ok");
+        signupOK = true;
+    }
+    else{
+        Serial.printf("%s\n", config.signer.signupError.message.c_str());
+    }
+
+
+    Firebase.begin(&config, &auth);
+    Firebase.reconnectWiFi(true);
+    
+    static unsigned long lastReadTime = 0;
+
+    startTime=millis();
+}
+
+void controlFan(bool state) {
+    digitalWrite(FAN_PIN, state ? HIGH : LOW);
+    Serial.printf("Fan turned %s\n", state ? "ON" : "OFF");
+}
+
 StaticJsonDocument<200> sendRequestToSensorNode() {
+  StaticJsonDocument<200> doc;
     if (WiFi.status() == WL_CONNECTED) {
         HTTPClient http;
 
         // Construct the full URL
-        String url = String("http://");
-        url += sensorNodeIP;
-        url += sensorNodeEndpoint;
+        String url = String("http://172.20.10.6/get-data");
 
         Serial.println(url);
 
@@ -93,7 +147,6 @@ StaticJsonDocument<200> sendRequestToSensorNode() {
             String responseBody = http.getString();
             Serial.println("Response from sensor node:");
             Serial.println(responseBody);
-            StaticJsonDocument<200> doc;
             deserializeJson(doc, responseBody);
             return doc;
             // Parse or process the JSON response here if needed
@@ -106,6 +159,7 @@ StaticJsonDocument<200> sendRequestToSensorNode() {
     } else {
         Serial.println("WiFi is not connected. Cannot send request.");
     }
+    return doc;
 }
 
 void reconnectWiFi() {
@@ -136,7 +190,7 @@ void sendDataToGoogleSheets(float brightness, float dust, float humidity, float 
     String url = String(scriptUrl);
         url += "?brightness=";
         url += brightness;
-        url += "?dust=";
+        url += "&dust=";
         url += dust;
         url += "&humidity=";
         url += humidity;
@@ -147,6 +201,7 @@ void sendDataToGoogleSheets(float brightness, float dust, float humidity, float 
     if (httpResponseCode > 0) {
       String response = http.getString();
       Serial.println("Success");
+      Serial.println(url);
     } else {
       Serial.println("Error on sending request");
     }
@@ -154,153 +209,10 @@ void sendDataToGoogleSheets(float brightness, float dust, float humidity, float 
   }
 }
 
-
-// Setup Function
-void setup() {
-    Serial.begin(115200);
-
-    // Initialize I2C
-    Wire.begin(I2C_SDA, I2C_SCL);
-    lcd.init();
-    lcd.backlight();
-    lcd.setCursor(0, 0);
-    lcd.print("LCD Initialized");
-
-    loopTask = xTaskGetHandle("loopTask");
-    if (loopTask != NULL) {
-        esp_task_wdt_delete(loopTask);
-    }
-
-    // Connect to Wi-Fi
-    Serial.println("Connecting to WiFi...");
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(1000);
-        Serial.print(".");
-    }
-    Serial.println("\nWiFi connected!");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-
-    // Initialize SPIFFS
-    if (!SPIFFS.begin(true)) {  // Force format on failure
-    Serial.println("SPIFFS Mount Failed! Formatting...");
-    if (!SPIFFS.format()) {
-        Serial.println("SPIFFS Formatting Failed!");
-    }
-    } else {
-    Serial.println("SPIFFS Mounted Successfully!");
-    }
-
-    // List SPIFFS contents for debugging
-    File root = SPIFFS.open("/");
-    File file = root.openNextFile();
-    while (file) {
-    Serial.println(file.name());
-    file = root.openNextFile();
-    file.close(); // Make sure to close the file handle
-    }
-    // Configure web server endpoints
-    // server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
-    //     request->send(SPIFFS, "/index.html", "text/html");
-    // });
-    // server.on("/scan", HTTP_GET, [](AsyncWebServerRequest* request) {
-    //     StaticJsonDocument<200> sensornode = sendRequestToSensorNode();
-    //     lux = sensornode["brightness"];
-    //     humidity = dht.readHumidity();
-    //     temperature = dht.readTemperature();
-    //     dustDensity = sensornode["dustDensity"];
-    //     Serial.printf("Humidity: %.2f%%  Temperature: %.2f°C\n lux: %.2flux\n dustDensity: %.2fu\n", humidity, temperature,lux,dustDensity);
-
-    //     // Create JSON response
-    //     String jsonResponse = "{";
-    //     jsonResponse += "\"humidity\":";
-    //     jsonResponse += String(humidity);
-    //     jsonResponse += ",";
-    //     jsonResponse += "\"temperature\":" ;
-    //     jsonResponse += String(temperature);
-    //     jsonResponse += ",";
-    //     jsonResponse += "\"dust\":"; 
-    //     jsonResponse += String(dustDensity);
-    //     jsonResponse += ",";
-    //     jsonResponse += "\"brightness\":" ;
-    //     jsonResponse += String(lux);
-    //     jsonResponse += "}";
-    //     request->send(200, "application/json", jsonResponse); // Respond with JSON
-    // });
-    // server.on("/script.js", HTTP_GET, [](AsyncWebServerRequest* request) {
-    //     request->send(SPIFFS, "/script.js", "application/javascript");
-    // });
-
-    // server.on("/styles.css", HTTP_GET, [](AsyncWebServerRequest* request) {
-    //     request->send(SPIFFS, "/styles.css", "text/css");
-    // });
-//     server.on("/process-voice", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-//     StaticJsonDocument<200> jsonDoc;
-//     DeserializationError error = deserializeJson(jsonDoc, data);
-
-//     if (error) {
-//       Serial.println("Failed to parse JSON");
-//       request->send(400, "application/json", "{\"message\":\"Invalid JSON\"}");
-//       return;
-//     }
-
-//     const char* word = jsonDoc["word"];
-//     String key = String(word);
-//     if (key == "humidity") {
-//         key+=" : " ;
-//         key  += String(humidity);
-//         key +="% RH";
-//     }
-//     else if(key == "dust") {
-//         key+=" : " ;
-//         key  += String(dustDensity);
-//         key+="µg/m³";
-//     }
-//     else if(key == "temperature") {
-//         key+=" : " ;
-//         key  += String(temperature);
-//         key +="°C";
-//     }
-//     else if(key == "brightness") {
-//         key+=" : " ;
-//         key  += String(lux);
-//         key+="lx";
-//     }
-//     lcd.print(key);
-//   });
-
-    // Start the server
-    server.begin();
-    dht.begin();
-
-    /* Assign the api key (required) */
-    config.api_key = API_KEY;
-
-    /* Assign the RTDB URL (required) */
-    config.database_url = DATABASE_URL;
-
-      /* Sign up */
-    if (Firebase.signUp(&config, &auth, "", "")){
-        Serial.println("ok");
-        signupOK = true;
-    }
-    else{
-        Serial.printf("%s\n", config.signer.signupError.message.c_str());
-    }
-
-
-    Firebase.begin(&config, &auth);
-    Firebase.reconnectWiFi(true);
-
-    startTime=millis();
-}
-
 // Main Loop
 void loop() {
     // Use a timer to read sensors and perform actions
-    static unsigned long lastReadTime = 0;
-    const unsigned long readInterval = 30000; // 5 seconds
+const unsigned long readInterval=30000;
 
     if (millis() - lastReadTime > readInterval) {
         lastReadTime = millis();
@@ -309,48 +221,52 @@ void loop() {
 
     if (Firebase.ready() && signupOK && (millis() - sendDataPrevMillis > 1000 || sendDataPrevMillis == 0)){
     sendDataPrevMillis = millis();
-    StaticJsonDocument<200> sensornode = sendRequestToSensorNode();
+    sensornode = sendRequestToSensorNode();
     lux = sensornode["brightness"];
     humidity = dht.readHumidity();
     temperature = dht.readTemperature();
     dustDensity = sensornode["dustDensity"];
     // Write an Float number on the database path test/float
     if (Firebase.RTDB.setFloat(&fbdo, "/sensors/brightness", lux)){
-      Serial.println("PASSED");
+      Serial.println("PASSED1");
       Serial.println(fbdo.dataPath());
       Serial.println( fbdo.dataType());
     }
     else {
-      Serial.println("FAILED");
+      Serial.println("FAILED1");
       Serial.println(fbdo.errorReason());
     }
     if (Firebase.RTDB.setFloat(&fbdo, "/sensors/dust", dustDensity)){
-      Serial.println("PASSED");
+      Serial.println("PASSED2");
       Serial.println(fbdo.dataPath());
       Serial.println( fbdo.dataType());
     }
     else {
-      Serial.println("FAILED");
+      Serial.println("FAILED2");
       Serial.println(fbdo.errorReason());
     }
     if (Firebase.RTDB.setFloat(&fbdo, "/sensors/humidity", humidity)){
-      Serial.println("PASSED");
+      Serial.println("PASSED3");
       Serial.println(fbdo.dataPath());
       Serial.println( fbdo.dataType());
     }
     else {
-      Serial.println("FAILED");
+      Serial.println("FAILED3");
       Serial.println(fbdo.errorReason());
     }
     if (Firebase.RTDB.setFloat(&fbdo, "/sensors/temperature", temperature)){
-      Serial.println("PASSED");
+      Serial.println("PASSED4");
       Serial.println(fbdo.dataPath());
       Serial.println( fbdo.dataType());
     }
     else {
-      Serial.println("FAILED");
+      Serial.println("FAILED4");
       Serial.println(fbdo.errorReason());
     }
+    if (Firebase.RTDB.getString(&fbdo, "/sensors/fan")) {
+        controlFan(fbdo.boolData());
+    }
+    
     if (Firebase.RTDB.getString(&fbdo, "/sensors/AI")) {
         String stringValue = fbdo.stringData();
         String key = String(stringValue);
@@ -363,6 +279,7 @@ void loop() {
             lcd.print(key);
             lcd.setCursor(0,1);
             lcd.print(keys);
+            Serial.println(key);
         }
         else if(key == "dust") {
             key+=" : " ;
@@ -373,6 +290,8 @@ void loop() {
             lcd.print(key);
             lcd.setCursor(0,1);
             lcd.print(keys);
+            Serial.println(key);
+
         }
         else if(key == "temperature") {
             key+=" : " ;
@@ -383,6 +302,8 @@ void loop() {
             lcd.print(key);
             lcd.setCursor(0,1);
             lcd.print(keys);
+            Serial.println(key);
+
         }
         else if(key == "brightness") {
             key+=" : " ;
@@ -393,9 +314,12 @@ void loop() {
             lcd.print(key);
             lcd.setCursor(0,1);
             lcd.print(keys);
+            Serial.println(key);
         }
         else if(key == "reset") {
             lcd.clear();
+            lcd.setCursor(0,0);
+            lcd.print("Embedded Project");
         }
             Serial.println(stringValue);
         }

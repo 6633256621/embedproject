@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sensor Monitor</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <!-- Buttons Section -->
+    <div class="buttons">
+      <button id="scanButton" class="button" >Start Scan</button>
+      <button id="talkingbutton" class="button">Start Talking</button>
+    </div>
+      
+    <!-- Result Section -->
+    <div id="resultSection" class="result-section">
+      <div id="resultContent" class="result">
+        <h2>RESULT</h2>
+        <div id="resultStatus">
+          <p class="percentage"></p>
+          <p class="status">...</p>
+        </div>
+        <p id="resultMessage" class="message"></p>
+      </div>
+    </div>
+
+    <!-- Sensor Cards -->
+    <!-- <div class="sensor-cards">
+      <div class="card" style="background-color: #d3d3d3;">
+        <h3>Humidity</h3>
+        <p><span id="humidityValue">0</span>% RH</p>
+      </div>
+      <div class="card" style="background-color: #d3d3d3;">
+        <h3>Temperature</h3>
+        <p><span id="temperatureValue">0</span> °C</p>
+      </div>
+      <div class="card" style="background-color: #d3d3d3;">
+        <h3>Dust</h3>
+        <p><span id="dustValue">0</span> mg/m³</p>
+      </div>
+      <div class="card" style="background-color: #d3d3d3;">
+        <h3>Brightness</h3>
+        <p><span id="brightnessValue">0</span> lx</p>
+      </div>
+    </div> -->
+    <div class="gradient-bar">
+        <div class="text-left">Bad</div>
+        <div class="text-right">Good</div>
+    </div>
+    <div class="sensor-cards">
+        <div class="card" style="background-color: #d3d3d3;">
+          <h3>Humidity</h3>
+          <div class="valuecontainer">
+              <p id="humidityValue" class="value">0</p>
+              <p class="factor">% RH</p>
+          </div>
+        </div>
+        <div class="card" style="background-color: #d3d3d3;">
+          <h3>Temperature</h3>
+          <div class="valuecontainer">
+              <p id="temperatureValue" class="value">0</p>
+              <p class="factor">°C</p>
+          </div>
+        </div>
+        <div class="card" style="background-color: #d3d3d3;">
+          <h3>Dust</h3>
+          <div class="valuecontainer">
+              <p id="dustValue" class="value">0</p>
+              <p class="factor">µg/m³</p>
+          </div>
+        </div>
+        <div class="card" style="background-color: #d3d3d3;">
+          <h3>Brightness</h3>
+          <div class="valuecontainer">
+              <p id="brightnessValue" class="value">0</p>
+              <p class="factor">lx</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <button id="sendEmailButton">Send to Email</button>
+        <input type="text" name="Email" id="emailDes" value="Your Email" />
+      </div>
+  </div>  
+  <!-- <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js"></script> -->
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <script type="module" src="script.js"></script>
+  <!-- <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-analytics.js";
+    // TODO: Add SDKs for Firebase products that you want to use
+    // https://firebase.google.com/docs/web/setup#available-libraries
+  
+    // Your web app's Firebase configuration
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    const firebaseConfig = {
+      apiKey: "AIzaSyCvi4o1NE3QGjF-OdLKfCpYiOs7hKksoNY",
+      authDomain: "embeded-953a1.firebaseapp.com",
+      databaseURL: "https://embeded-953a1-default-rtdb.firebaseio.com",
+      projectId: "embeded-953a1",
+      storageBucket: "embeded-953a1.firebasestorage.app",
+      messagingSenderId: "1068125102342",
+      appId: "1:1068125102342:web:c006a8d15414f452b43e87",
+      measurementId: "G-3BLFRY5R6R"
+    };
+
+    document.getElementById("scanButton").addEventListener("click", () => {
+      console.log("skdjfhsdjf");
+    });
+  
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+
+    firebase.initializeApp(firebaseConfig);
+
+    var database = firebase.database();
+
+    var dataRef1 = database.ref('sensors/brightness');
+
+    dataRef1.on('value', function(getdata1){
+      var light = getdata1.val();
+      document.getElementById('brightnessValue').innerHTML = light;
+    })
+  </script> -->
